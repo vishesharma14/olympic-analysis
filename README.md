@@ -2,7 +2,7 @@
 
 An interactive Streamlit dashboard exploring 120 years of Summer Olympics history — medal tallies, country-wise performance, athlete demographics, and participation trends.
 
-**🔗 Live app:** _add your Streamlit Cloud link here after deploying_
+**🔗 Live app:** https://olympic-analysis-wbcngllnqyncsjv4agufpt.streamlit.app
 
 ## Features
 
