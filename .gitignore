@@ -14,3 +14,5 @@ env/
 .DS_Store
 .idea/
 .vscode/
+# Local SQLite database built by sql/load_sqlite.py
+sql/olympics.db
