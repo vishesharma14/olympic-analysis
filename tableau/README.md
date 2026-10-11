@@ -1,10 +1,23 @@
 # Tableau Dashboard
 
-<!-- After publishing, replace this comment with:
-**Live dashboard:** https://public.tableau.com/app/profile/<your-profile>/viz/<your-dashboard>
--->
+**Live dashboard:** https://public.tableau.com/app/profile/vishesh.sharma3888/viz/OlympicsMedalDashboard_17916664107200/OlympicsDashboard
 
 An interactive Tableau Public dashboard built on the same data and counting rules as the Streamlit app.
+
+## What it shows
+
+| Chart | Question it answers |
+| --- | --- |
+| Medal map | Which countries have won the most Summer Olympic medals? |
+| Top 10 countries | Who leads the all-time medal table (or the table for the selected years)? |
+| Medals over time | How has the number of medals awarded grown across the Games? |
+| Top 15 sports | Which sports award the most medals, overall or for a selected country? |
+| Women's share of athletes | How has women's participation grown from 0% in 1896 to 45% in 2016? |
+
+**Interactivity**
+
+- **Year** (range) and **Country** filters update every medal chart.
+- **Click a country on the map** to see its medals over time and its own strongest sports. For example, India shows 28 medals in total, a peak of 6 at London 2012, and Hockey as its top sport with 11 medals.
 
 ## Data
 
@@ -23,12 +36,12 @@ python tableau/prepare_data.py
 
 ## How the dashboard is built
 
-1. **Connect** — open Tableau Public, connect to `medals.csv`, then add `participation_by_year.csv` as a second data source.
-2. **Medal map** — double-click `Map Country` (set its geographic role to *Country/Region*), put `SUM(Total)` on Color, and `Gold`, `Silver`, `Bronze` on Tooltip.
-3. **Top 10 countries** — `Country` on Rows, `SUM(Gold)`, `SUM(Silver)` and `SUM(Bronze)` as a stacked bar with Measure Names on Color, and a Top 10 filter on `Country` by `SUM(Total)`.
-4. **Medals over time** — `Year` (as a dimension) on Columns, `SUM(Total)` on Rows, line mark.
-5. **Medals by sport** — `Sport` on Rows, `SUM(Total)` on Columns, sorted descending, or as a treemap.
-6. **Women's participation** — from `participation_by_year.csv`: `Year` on Columns, `Women %` on Rows, line mark.
-7. **KPI tiles** — single-number sheets for total medals, nations and athletes.
-8. **Dashboard** — combine the sheets, add `Year` (range) and `Country` filters and apply them to all sheets that use `medals.csv`, and set the map as a filter action so clicking a country updates the other charts.
-9. **Publish** — *File → Save to Tableau Public*, then copy the link into this README and the main README.
+1. **Connect:** open Tableau Public, connect to `medals.csv`, then add `participation_by_year.csv` as a second data source.
+2. **Medal map:** `Map Country` (geographic role *Country/Region*) on Detail, `SUM(Total)` on Color, and `Gold`, `Silver`, `Bronze` on Tooltip.
+3. **Top 10 countries:** `Country` on Rows and `SUM(Total)` on Columns, sorted descending, with a Top 10 filter on `Map Country` by `SUM(Total)`.
+4. **Medals over time:** `Year` (continuous dimension) on Columns and `SUM(Total)` on Rows, as a line.
+5. **Top 15 sports:** `Sport` on Rows and `SUM(Total)` on Columns, sorted descending, with a Top 15 filter on `Sport`.
+6. **Women's participation:** from `participation_by_year.csv`, `Year` on Columns and `Women %` on Rows, as a line.
+7. **Filters:** `Year` (range of values) and `Country`, applied to all sheets that use `medals.csv` and **added to context**. Tableau computes Top N filters before ordinary filters, so without context the Top 10 and Top 15 would not be recalculated for the selected years or countries.
+8. **Click a country:** a filter action from the map to *Medals over time* and *Top 15 sports*. Its action filter is added to context on the sports sheet, so a selected country shows its own top sports rather than the global top 15.
+9. **Publish:** fixed size of 1200 × 900, worksheets hidden so only the dashboard is shown, then *File → Save to Tableau Public*.

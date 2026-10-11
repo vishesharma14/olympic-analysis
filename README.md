@@ -5,12 +5,13 @@
 ![pandas](https://img.shields.io/badge/pandas-150458?logo=pandas&logoColor=white)
 ![Plotly](https://img.shields.io/badge/Plotly-3F4F75?logo=plotly&logoColor=white)
 ![SQL](https://img.shields.io/badge/SQL-SQLite_|_MySQL-4479A1?logo=mysql&logoColor=white)
-![Tableau](https://img.shields.io/badge/Tableau-dashboard-E97627?logo=tableau&logoColor=white)
+[![Tableau](https://img.shields.io/badge/Tableau_Public-Live_Dashboard-E97627?logo=tableau&logoColor=white)](https://public.tableau.com/app/profile/vishesh.sharma3888/viz/OlympicsMedalDashboard_17916664107200/OlympicsDashboard)
 
 An interactive Streamlit dashboard that explores **120 years of Summer Olympics history** — medal tallies, country-wise performance, athlete demographics and participation trends. The same data is also analysed in **SQL** and visualised in **Tableau**.
 
 **Live app:** https://olympic-analysis-wbcngllnqyncsjv4agufpt.streamlit.app/
-<!-- After publishing the Tableau dashboard, add: **Tableau dashboard:** <link> -->
+
+**Tableau dashboard:** https://public.tableau.com/app/profile/vishesh.sharma3888/viz/OlympicsMedalDashboard_17916664107200/OlympicsDashboard
 
 <!-- Add a screenshot here, e.g. ![Dashboard overview](assets/overview.png) -->
 
@@ -55,7 +56,9 @@ See [`sql/README.md`](sql/README.md) for the questions, key findings and MySQL i
 
 ## Tableau Dashboard
 
-`tableau/prepare_data.py` builds tidy CSVs (team medals counted once, map-ready country names) for an interactive Tableau Public dashboard: a medal map, top-10 countries, medals over time, medals by sport and women's participation. See [`tableau/README.md`](tableau/README.md).
+An interactive [Tableau Public dashboard](https://public.tableau.com/app/profile/vishesh.sharma3888/viz/OlympicsMedalDashboard_17916664107200/OlympicsDashboard) with a medal map, the top 10 countries, medals over time, the top 15 sports and women's participation. Year and Country filters update every medal chart, and clicking a country on the map shows its medals over time and its own strongest sports.
+
+`tableau/prepare_data.py` builds the tidy CSVs behind it (team medals counted once, map-ready country names). See [`tableau/README.md`](tableau/README.md) for how it is built.
 
 ## Tech Stack
 
