@@ -6,6 +6,8 @@ sql/olympics.db, using the tables in sql/schema.sql. Standard library only.
 
 Run from anywhere:
     python sql/load_sqlite.py
+
+build_database() is also used by the chatbot (chatbot/db.py) to build its own copy.
 """
 
 import csv
@@ -32,8 +34,9 @@ def read_csv(path: Path) -> tuple[list[str], list[list]]:
     return header, rows
 
 
-def main() -> None:
-    connection = sqlite3.connect(DB_PATH)
+def build_database(db_path: Path) -> None:
+    """Creates the tables from schema.sql in db_path (replacing any existing ones) and loads both CSVs."""
+    connection = sqlite3.connect(db_path)
     try:
         connection.executescript((SQL_DIR / "schema.sql").read_text(encoding="utf-8"))
         for table, path in TABLES.items():
@@ -46,6 +49,10 @@ def main() -> None:
         connection.commit()
     finally:
         connection.close()
+
+
+def main() -> None:
+    build_database(DB_PATH)
     print(f"Database ready: {DB_PATH}")
 
 
