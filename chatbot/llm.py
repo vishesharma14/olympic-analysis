@@ -83,6 +83,8 @@ class QuotaExceeded(GeminiError):
 def get_setting(name: str) -> str | None:
     """Reads a setting from the environment, then Streamlit secrets, then .streamlit/secrets.toml."""
     value = os.environ.get(name) or _streamlit_secret(name) or _secrets_file_value(name)
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        value = str(value)  # a TOML number such as CHAT_DAILY_LIMIT = 300
     return value.strip() if isinstance(value, str) and value.strip() else None
 
 

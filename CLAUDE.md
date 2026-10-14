@@ -54,6 +54,10 @@ Built so far in `chatbot/`:
   - Limits: 3 `run_sql` executions and 5 `generate()` calls per question; the last call has tools disabled. Temperature 0, MINIMAL thinking, the last 2 turns of history (text only).
   - Grounding check (a flag, never blocks): numbers in the answer must appear in this question's SQL results or retrieved notes; years 1896–2016 and numbers from the question are ignored.
 - `ask.py`: `python -m chatbot.ask "question"` prints the answer, each SQL with its row count, the sources, model, calls, time and grounding.
+- `ui.py`: `render()` draws the "Ask the data" page: example questions while the chat is empty, chat bubbles (history in `st.session_state`, the last 2 turns passed to `answer()`), a grounding line under each answer, and a "How this was answered" expander with each SQL, its rows, the note headings, retrieval method, model, Gemini calls and time. No key -> an info box and no chat input; the database is built through `st.cache_resource`.
+  - Usage limits, overridable with an env var or Streamlit secret of the same name (`llm.get_setting`, which also accepts TOML numbers): `CHAT_SESSION_LIMIT` (15 questions per browser session; Clear chat does not reset it), `CHAT_DAILY_LIMIT` (200 per UTC day for the whole app, a thread-safe counter in `st.cache_resource`) and `CHAT_MIN_INTERVAL_S` (3 s between questions of a session). Questions are kept only in `st.session_state`.
+- `app.py`: "Ask the data" is the last sidebar option; `chatbot.ui` is imported only on that page, so the dashboard pages never load google-genai or build the chatbot database.
+- `ui.py` needs `streamlit>=1.64` (`st.chat_input(submit_mode=...)`, `st.button(width=...)`).
 
 `chatbot/db.py` imports `sql.load_sqlite`, so the repo root must be on `sys.path`. `streamlit run app.py` and `pytest.ini` both take care of this.
 
@@ -63,8 +67,8 @@ Built so far in `chatbot/`:
 2. Knowledge notes for RAG (markdown, every number checked against SQL) (**done**)
 3. Gemini client + embeddings index + retrieval (**done**)
 4. Agent: retrieve -> Gemini with run_sql tool -> answer, with guardrails (**done**)
-5. Streamlit "Ask the data" page (**next**)
-6. Evaluation set + script + fixes
+5. Streamlit "Ask the data" page (**done**)
+6. Evaluation set + script + fixes (**next**)
 7. Deploy to Streamlit Community Cloud with secrets, README, screenshots
 
 ## Working rules

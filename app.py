@@ -97,8 +97,10 @@ user_menu = st.sidebar.radio(
         "Overall Analysis",
         "Country-Wise Analysis",
         "Athlete Wise Analysis",
+        "Ask the data",
     ),
 )
+st.sidebar.caption("New: ask questions in plain English")
 
 st.sidebar.markdown("---")
 st.sidebar.caption("Data: 120 years of Olympic history (Athlete Events)")
@@ -413,4 +415,12 @@ if user_menu == "Athlete Wise Analysis":
         legend_title="Gender",
     )
     st.plotly_chart(fig, use_container_width=True)
+
+# ----------------------------------------------------------------------------
+# Ask the data (imported only here, so the other pages never load the chatbot)
+# ----------------------------------------------------------------------------
+if user_menu == "Ask the data":
+    from chatbot import ui as chatbot_ui
+
+    chatbot_ui.render()
 
