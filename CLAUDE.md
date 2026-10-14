@@ -40,14 +40,16 @@ Built so far in `chatbot/`:
   - `ensure_database()` builds the database once, at `OLYMPICS_DB_PATH` or `<system temp dir>/olympics_chatbot.db`, and rebuilds it when `sql/schema.sql`, `sql/load_sqlite.py` or `chatbot/views.sql` changes.
   - `run_select()` is the sandboxed SQL runner; it raises `SQLGuardError` with a user-safe message.
   - `SCHEMA_DESCRIPTION` describes both views for the model prompt.
+- `knowledge/`: five markdown notes (dataset, counting rules, findings, glossary, project); each `## ` section is one retrieval chunk of 30–200 words, and every statistic is checked against SQL in `tests/test_knowledge.py`.
+- `knowledge.py`: `load_chunks()` splits the notes into `Chunk`s (id `<file>#<heading-slug>`, text `<title> — <heading>` plus the section, HTML comments removed).
 
 `chatbot/db.py` imports `sql.load_sqlite`, so the repo root must be on `sys.path`. `streamlit run app.py` and `pytest.ini` both take care of this.
 
 ## Roadmap
 
 1. Data foundation: views + read-only SQL runner + tests (**done**)
-2. Knowledge notes for RAG (markdown, every number checked against SQL) (**next**)
-3. Gemini client + embeddings index + retrieval
+2. Knowledge notes for RAG (markdown, every number checked against SQL) (**done**)
+3. Gemini client + embeddings index + retrieval (**next**)
 4. Agent: retrieve -> Gemini with run_sql tool -> answer, with guardrails
 5. Streamlit "Ask the data" page
 6. Evaluation set + script + fixes
