@@ -1,8 +1,9 @@
 """
-Offline tests for chatbot/llm.py: key lookup, model fallback and embeddings, with a mocked client.
-No network and no real key are used.
+Offline tests for chatbot/llm.py: key lookup, model fallback, skipping failed models and embeddings,
+with a mocked client and a fake clock. No network and no real key are used.
 """
 
+import threading
 from types import SimpleNamespace
 
 import numpy as np
@@ -94,6 +95,92 @@ def test_generate_errors_and_logs_contain_no_key_or_request(monkeypatch, caplog)
     for text in (str(raised.value), caplog.text):
         assert FAKE_KEY not in text and question not in text
     assert f"{PRIMARY} failed with 429" in caplog.text
+
+
+# generate(): skipping models that failed recently
+
+@pytest.fixture
+def clock(monkeypatch):
+    """A fake llm._clock; advance it with clock.now += seconds."""
+    fake = SimpleNamespace(now=1_000.0)
+    monkeypatch.setattr(llm, "_clock", lambda: fake.now)
+    return fake
+
+
+@pytest.mark.parametrize("code", [429, 503])
+def test_a_model_failing_after_its_retry_is_skipped_for_five_minutes(monkeypatch, clock, code):
+    calls = fake_client(monkeypatch, generate=failing_for((PRIMARY, code)))
+    assert llm.generate("first") == f"answer from {FALLBACK}"
+    calls.clear()
+
+    clock.now += llm.COOLDOWN_S - 1
+    assert llm.generate("second") == f"answer from {FALLBACK}"
+    assert [model for model, _ in calls] == [FALLBACK]  # the primary is not even tried
+
+    calls.clear()
+    clock.now += 2  # the cooldown is over
+    llm.generate("third")
+    assert [model for model, _ in calls][0] == PRIMARY
+
+
+def test_a_model_that_recovers_on_its_retry_is_not_skipped(monkeypatch, clock):
+    outcomes = iter([api_error(429), "recovered", "again"])
+
+    def respond(model):
+        outcome = next(outcomes)
+        if isinstance(outcome, Exception):
+            raise outcome
+        return outcome
+    calls = fake_client(monkeypatch, generate=respond)
+    assert llm.generate("hi") == "recovered"
+    assert llm.generate("hi") == "again"
+    assert [model for model, _ in calls] == [PRIMARY, PRIMARY, PRIMARY]
+
+
+def test_a_missing_model_is_skipped_for_the_rest_of_the_process(monkeypatch, clock):
+    calls = fake_client(monkeypatch, generate=failing_for((PRIMARY, 404)))
+    llm.generate("first")
+    calls.clear()
+    clock.now += 365 * 24 * 3600
+    assert llm.generate("a year later") == f"answer from {FALLBACK}"
+    assert [model for model, _ in calls] == [FALLBACK]
+
+
+def test_other_transient_errors_do_not_start_a_cooldown(monkeypatch, clock):
+    calls = fake_client(monkeypatch, generate=failing_for((PRIMARY, 500)))
+    llm.generate("first")
+    calls.clear()
+    llm.generate("second")
+    assert [model for model, _ in calls] == [PRIMARY, PRIMARY, FALLBACK]
+
+
+def test_quota_exceeded_without_any_call_while_every_model_is_skipped(monkeypatch, clock):
+    calls = fake_client(monkeypatch, generate=failing_for((PRIMARY, 429), (FALLBACK, 404)))
+    with pytest.raises(llm.QuotaExceeded):
+        llm.generate("first")
+    calls.clear()
+    with pytest.raises(llm.QuotaExceeded):
+        llm.generate("second")
+    assert calls == []
+
+
+def test_skipped_models_are_shared_safely_between_threads(monkeypatch, clock):
+    calls = fake_client(monkeypatch, generate=failing_for((PRIMARY, 429)))
+    answers, start = [], threading.Barrier(8)
+
+    def ask():
+        start.wait()
+        answers.append(llm.generate("hi"))
+    threads = [threading.Thread(target=ask) for _ in range(8)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+    assert answers == [f"answer from {FALLBACK}"] * 8
+    assert llm._is_skipped(PRIMARY) and not llm._is_skipped(FALLBACK)
+    calls.clear()
+    llm.generate("later")
+    assert [model for model, _ in calls] == [FALLBACK]
 
 
 def test_chat_and_embedding_models_can_be_overridden(monkeypatch):

@@ -21,5 +21,7 @@ def offline_gemini(monkeypatch, tmp_path):
     monkeypatch.setattr(llm, "_client", no_network)
     monkeypatch.setattr(llm.time, "sleep", lambda seconds: None)
     retrieval.clear_caches()
+    llm.clear_skipped_models()
     yield
     retrieval.clear_caches()
+    llm.clear_skipped_models()

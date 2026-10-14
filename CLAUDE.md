@@ -43,9 +43,17 @@ Built so far in `chatbot/`:
 - `knowledge/`: five markdown notes (dataset, counting rules, findings, glossary, project); each `## ` section is one retrieval chunk of 30–200 words, and every statistic is checked against SQL in `tests/test_knowledge.py`.
 - `knowledge.py`: `load_chunks()` splits the notes into `Chunk`s (id `<file>#<heading-slug>`, text `<title> — <heading>` plus the section, HTML comments removed).
 - `llm.py`: the only module that talks to Gemini (google-genai SDK): `get_api_key()`, `embed_documents()` / `embed_query()` (768-dim, L2-normalised), and `generate()`, which retries once and then falls back from `gemini-3.5-flash-lite` to `gemini-3.1-flash-lite`, raising `QuotaExceeded` when both fail; models can be overridden with `GEMINI_CHAT_MODELS` / `GEMINI_EMBED_MODEL`.
+  - A model still failing with 429/503 after its retry is skipped by the process for 5 minutes; a 404 skips it for the rest of the process. The skip list is thread-safe (Streamlit serves sessions on threads).
+  - Not in the chain: `gemini-2.5-flash-lite` (404 for this key) and `gemini-3.7-flash` / `gemini-3.8-flash` (400: they reject MINIMAL thinking).
 - `list_models.py`: lists the models the key can use and their supported actions.
 - `build_index.py` + `index/`: embeds every chunk with `gemini-embedding-001` into the committed `index/knowledge_index.npz` (vectors, ids, text hashes, model, dimensions); rerun after editing any note.
 - `retrieval.py`: `retrieve(question, k)` ranks chunks by cosine similarity against the index, falling back to BM25 keyword scoring when the question cannot be embedded or the index is out of date.
+- `prompts.py`: every text the agent sends to Gemini or shows to users: the system instruction (rules + `SCHEMA_DESCRIPTION`), the `run_sql` tool description, the user turn with its delimited "Reference notes" block, and the fixed messages for rejected input, quota and errors.
+- `agent.py`: `answer(question, history)` -> `AgentResult` (text, status `ok`/`quota`/`error`, `sql_runs`, sources, retrieval method, model, `llm_calls`, elapsed time, grounding). It never raises.
+  - Flow: validate (non-empty, at most 300 characters, no model call otherwise) -> `retrieve(question, k=4)` -> Gemini with the `run_sql` tool -> answer. Function calling is manual, so every query is recorded; the model gets a compact result (up to 50 rows as CSV, about 4,000 characters) or the `SQLGuardError` message.
+  - Limits: 3 `run_sql` executions and 5 `generate()` calls per question; the last call has tools disabled. Temperature 0, MINIMAL thinking, the last 2 turns of history (text only).
+  - Grounding check (a flag, never blocks): numbers in the answer must appear in this question's SQL results or retrieved notes; years 1896–2016 and numbers from the question are ignored.
+- `ask.py`: `python -m chatbot.ask "question"` prints the answer, each SQL with its row count, the sources, model, calls, time and grounding.
 
 `chatbot/db.py` imports `sql.load_sqlite`, so the repo root must be on `sys.path`. `streamlit run app.py` and `pytest.ini` both take care of this.
 
@@ -54,8 +62,8 @@ Built so far in `chatbot/`:
 1. Data foundation: views + read-only SQL runner + tests (**done**)
 2. Knowledge notes for RAG (markdown, every number checked against SQL) (**done**)
 3. Gemini client + embeddings index + retrieval (**done**)
-4. Agent: retrieve -> Gemini with run_sql tool -> answer, with guardrails (**next**)
-5. Streamlit "Ask the data" page
+4. Agent: retrieve -> Gemini with run_sql tool -> answer, with guardrails (**done**)
+5. Streamlit "Ask the data" page (**next**)
 6. Evaluation set + script + fixes
 7. Deploy to Streamlit Community Cloud with secrets, README, screenshots
 
@@ -81,5 +89,7 @@ python sql/run_queries.py             # all ten SQL questions; add a number (e.g
 python -m pytest -q                   # tests; the first run builds the chatbot database (about 20 s)
 python -m chatbot.list_models         # Gemini models this key can use
 python -m chatbot.build_index         # re-embed the knowledge notes (skips if the index is current)
-python -m pytest -m live -q           # live Gemini retrieval tests; uses free-tier quota
+python -m pytest -m live tests/test_live.py -q   # live Gemini retrieval tests; 8 embedding requests
+python -m chatbot.ask "question"      # ask the agent one question; about 1 embedding + 2 chat requests
+python -m pytest -m live tests/test_agent_live.py -q -s   # live agent smoke test; about 30 requests of free quota
 ```
