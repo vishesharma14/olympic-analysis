@@ -42,6 +42,10 @@ Built so far in `chatbot/`:
   - `SCHEMA_DESCRIPTION` describes both views for the model prompt.
 - `knowledge/`: five markdown notes (dataset, counting rules, findings, glossary, project); each `## ` section is one retrieval chunk of 30–200 words, and every statistic is checked against SQL in `tests/test_knowledge.py`.
 - `knowledge.py`: `load_chunks()` splits the notes into `Chunk`s (id `<file>#<heading-slug>`, text `<title> — <heading>` plus the section, HTML comments removed).
+- `llm.py`: the only module that talks to Gemini (google-genai SDK): `get_api_key()`, `embed_documents()` / `embed_query()` (768-dim, L2-normalised), and `generate()`, which retries once and then falls back from `gemini-3.5-flash-lite` to `gemini-3.1-flash-lite`, raising `QuotaExceeded` when both fail; models can be overridden with `GEMINI_CHAT_MODELS` / `GEMINI_EMBED_MODEL`.
+- `list_models.py`: lists the models the key can use and their supported actions.
+- `build_index.py` + `index/`: embeds every chunk with `gemini-embedding-001` into the committed `index/knowledge_index.npz` (vectors, ids, text hashes, model, dimensions); rerun after editing any note.
+- `retrieval.py`: `retrieve(question, k)` ranks chunks by cosine similarity against the index, falling back to BM25 keyword scoring when the question cannot be embedded or the index is out of date.
 
 `chatbot/db.py` imports `sql.load_sqlite`, so the repo root must be on `sys.path`. `streamlit run app.py` and `pytest.ini` both take care of this.
 
@@ -49,8 +53,8 @@ Built so far in `chatbot/`:
 
 1. Data foundation: views + read-only SQL runner + tests (**done**)
 2. Knowledge notes for RAG (markdown, every number checked against SQL) (**done**)
-3. Gemini client + embeddings index + retrieval (**next**)
-4. Agent: retrieve -> Gemini with run_sql tool -> answer, with guardrails
+3. Gemini client + embeddings index + retrieval (**done**)
+4. Agent: retrieve -> Gemini with run_sql tool -> answer, with guardrails (**next**)
 5. Streamlit "Ask the data" page
 6. Evaluation set + script + fixes
 7. Deploy to Streamlit Community Cloud with secrets, README, screenshots
@@ -75,4 +79,7 @@ streamlit run app.py                  # dashboard at http://localhost:8501
 python sql/load_sqlite.py             # build sql/olympics.db
 python sql/run_queries.py             # all ten SQL questions; add a number (e.g. 3) for one
 python -m pytest -q                   # tests; the first run builds the chatbot database (about 20 s)
+python -m chatbot.list_models         # Gemini models this key can use
+python -m chatbot.build_index         # re-embed the knowledge notes (skips if the index is current)
+python -m pytest -m live -q           # live Gemini retrieval tests; uses free-tier quota
 ```
