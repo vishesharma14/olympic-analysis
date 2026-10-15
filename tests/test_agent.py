@@ -97,6 +97,7 @@ def test_the_request_has_the_rules_notes_and_settings(gemini):
     assert config.system_instruction == prompts.SYSTEM_INSTRUCTION
     assert "country_medals" in config.system_instruction and "Reference notes" not in config.system_instruction
     assert f'reply with exactly this text: "{prompts.READ_ONLY_REPLY}"' in config.system_instruction
+    assert "Never give this reply to any other question" in config.system_instruction
     assert config.temperature == agent.TEMPERATURE == 1.0 and config.max_output_tokens == agent.MAX_OUTPUT_TOKENS
     assert config.thinking_config.thinking_level == types.ThinkingLevel.MINIMAL
     assert config.automatic_function_calling.disable is True
@@ -152,6 +153,19 @@ def test_an_empty_model_reply_is_a_polite_failure(gemini):
     gemini(reply())
     result = agent.answer("Which country has won the most gold medals?")
     assert result.status == "error" and result.text == prompts.GAVE_UP_MESSAGE and result.llm_calls == 1
+
+
+@pytest.mark.parametrize("model_text, shown", [
+    # Step 6, test2: the model began its answer with this line.
+    ("Preferences: none\nOver 10,000 athletes competed at Atlanta 1996.", "Over 10,000 athletes competed at Atlanta 1996."),
+    ("Notes: N/A.\n\nThe USA leads.", "The USA leads."),
+    ("Top countries:\n1. USA\n2. Russia", "Top countries:\n1. USA\n2. Russia"),
+    ("Note: none of them won a medal.\nTry another sport.", "Note: none of them won a medal.\nTry another sport."),
+    ("Preferences: none", "Preferences: none"),  # nothing after it: kept, not emptied
+], ids=["empty-label", "n/a-label", "list-heading", "label-with-content", "label-only"])
+def test_a_first_line_that_is_only_an_empty_label_is_removed(gemini, model_text, shown):
+    gemini(text(model_text))
+    assert agent.answer("How big were the 1996 Games?").text == shown
 
 
 @pytest.mark.parametrize("write", [

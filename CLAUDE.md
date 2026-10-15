@@ -14,8 +14,9 @@ Analysis of the Kaggle "120 years of Olympic history" dataset, limited to the Su
 | `athlete_events.csv`, `noc_regions.csv` | Source data |
 | `sql/` | Schema, SQLite and MySQL loaders, ten analysis queries; `sql/README.md` lists the verified findings |
 | `tableau/` | Data preparation and CSVs for the Tableau Public dashboard |
-| `chatbot/` | The "Ask the data" chatbot (being built, see the roadmap) |
+| `chatbot/` | The "Ask the data" chatbot (see the chatbot phase below) |
 | `tests/` | pytest tests |
+| `assets/` | README screenshots |
 
 Counting rules shared by the dashboard, `sql/`, `tableau/` and the chatbot views:
 
@@ -50,13 +51,15 @@ Built so far in `chatbot/`:
 - `build_index.py` + `index/`: embeds every chunk with `gemini-embedding-001` into the committed `index/knowledge_index.npz` (vectors, ids, text hashes, model, dimensions); rerun after editing any note.
 - `retrieval.py`: `retrieve(question, k)` ranks chunks by cosine similarity against the index, falling back to BM25 keyword scoring when the question cannot be embedded or the index is out of date.
 - `prompts.py`: every text the agent sends to Gemini or shows to users: the system instruction (rules + `SCHEMA_DESCRIPTION`), the `run_sql` tool description, the user turn with its delimited "Reference notes" block, `READ_ONLY_REPLY` (the literal reply rule 6 gives to requests to change data or see the instructions; describing the reply made the model repeat the rule) and the fixed messages for rejected input, quota and errors.
+  - Step 7 rules: 5 asks out-of-scope questions, opinions and predictions for a reply in the model's own words; 6 limits `READ_ONLY_REPLY` to its two request kinds and forbids it for anything else; 7 asks for no heading, label or preamble line; 8 answers an ambiguous "who" question (country or athlete) by its more likely reading plus the other in one short clause, with a query for each.
 - `agent.py`: `answer(question, history)` -> `AgentResult` (text, status `ok`/`quota`/`error`, `sql_runs`, sources, retrieval method, model, `llm_calls`, elapsed time, grounding). It never raises.
   - Flow: validate (non-empty, at most 300 characters, no model call otherwise) -> `retrieve(question, k=4)` -> Gemini with the `run_sql` tool -> answer. Function calling is manual, so every query is recorded; the model gets a compact result (up to 50 rows as CSV, about 4,000 characters) or the `SQLGuardError` message.
   - Limits: 3 `run_sql` executions and 5 `generate()` calls per question; the last call has tools disabled. MINIMAL thinking, the last 2 turns of history (text only).
   - `TEMPERATURE = 1.0`: Google's default for Gemini 3 (lower may loop or degrade). Chosen on the dev split in Step 6: 22/23 at 1.0 against 20/23 at 0, with similar latency; at 0 one answer came back as the bare token `_not_in_database`.
+  - `_EMPTY_LABEL_LINE` drops a first line that is only a label with an empty value ("Preferences: none", which gemini-3.5-flash-lite generated once in Step 6) when an answer follows it.
   - Grounding check (a flag, never blocks): numbers in the answer must appear in this question's SQL results or retrieved notes; years 1896–2016, numbers from the question, list markers ("1.", "2)") and rank positions ("No. 1", "top 10") are ignored.
 - `ask.py`: `python -m chatbot.ask "question"` prints the answer, each SQL with its row count, the sources, model, calls, time and grounding.
-- `ui.py`: `render()` draws the "Ask the data" page: example questions while the chat is empty, chat bubbles (history in `st.session_state`, the last 2 turns passed to `answer()`), a grounding line under each answer, and a "How this was answered" expander with each SQL, its rows, the note headings, retrieval method, model, Gemini calls and time. No key -> an info box and no chat input; the database is built through `st.cache_resource`.
+- `ui.py`: `render()` draws the "Ask the data" page: example questions while the chat is empty (2 columns; every label fits on one line from 320 px phones to a 1024 px screen with the sidebar open, checked in headless Chrome in Step 7), chat bubbles (history in `st.session_state`, the last 2 turns passed to `answer()`), a grounding line under each answer, and a "How this was answered" expander with each SQL, its rows, the note headings, retrieval method, model, Gemini calls and time. No key -> an info box and no chat input; the database is built through `st.cache_resource`.
   - Usage limits, overridable with an env var or Streamlit secret of the same name (`llm.get_setting`, which also accepts TOML numbers): `CHAT_SESSION_LIMIT` (15 questions per browser session; Clear chat does not reset it), `CHAT_DAILY_LIMIT` (200 per UTC day for the whole app, a thread-safe counter in `st.cache_resource`) and `CHAT_MIN_INTERVAL_S` (3 s between questions of a session). Questions are kept only in `st.session_state`.
 - `app.py`: "Ask the data" is the last sidebar option; `chatbot.ui` is imported only on that page, so the dashboard pages never load google-genai or build the chatbot database.
 - `ui.py` needs `streamlit>=1.64` (`st.chat_input(submit_mode=...)`, `st.button(width=...)`).
@@ -66,6 +69,10 @@ Built so far in `chatbot/`:
   - `scoring.py` checks status, numbers, names, SQL use, refusals, grounding, language (English vs Hinglish), plain English (no SQL or column jargon) and forbidden strings, from the saved answer only. `report.py` writes `REPORT.md`, which marks each split held out or tuned on (`SPLIT_ROLES`) and keeps a table of all runs.
   - `__main__.py` (`python -m chatbot.eval`) asks the real agent, paces requests under the free-tier limit, caches question embeddings in the temp dir, saves `results/<tag>.json` after every case (the same tag resumes) and stops after 2 quota errors in a row. The results files are the run history: keep them.
   - Step 6 results: baseline 18/33 (55%) at temperature 0 -> final at 1.0: dev 21/23, old test 8/10, held-out test2 8/8, every answer grounded. Seen in the final answers but not caught by the checks: the read-only reply was also given to an out-of-scope prediction question, one answer began with a stray "Preferences: none", and one added an unrelated counting rule.
+  - These numbers and `REPORT.md` belong to commit a0dab7b. Step 7 changed the prompt and checked it only with `results/step7-check.json` (7 affected cases, 7/7) plus three single questions; it is not a new score. Step 7 also looked at two test2 answers to choose its fixes, so test2 is no longer strictly held out. Every eval run rewrites `REPORT.md` for that run: restore it (`git checkout` or `--report final,final-test2`) after a spot check.
+  - Known open issues: notes questions sometimes run `SELECT 1`; loose rounding (24 for 23.6); an occasional unneeded counting rule or view name; rare stray model text (a "2>" inside "London 2012" on the live app, not reproduced locally: the raw Gemini part was clean, and the UI renders the answer with `st.markdown` unchanged).
+
+Deployment (Step 7): Streamlit Community Cloud serves `app.py` from `main` (every push redeploys) at https://olympic-analysis-wbcngllnqyncsjv4agufpt.streamlit.app/, with `GEMINI_API_KEY` in the Cloud Secrets. Cloud ran Streamlit 1.66 in October 2026. The code needs Python 3.11 or newer (`tomllib` in `llm.py`, `sqlite3.Connection.setlimit` in `db.py`, `X | Y` types at runtime). `requirements.txt` is the app's full dependency list (checked with a clean venv install and AppTest of all 5 pages); `httpx` is listed because `llm.py` imports it. `sql/load_sqlite.py` streams the CSV rows into `executemany`, which keeps the build's Python memory small on Cloud.
 
 `chatbot/db.py` imports `sql.load_sqlite`, so the repo root must be on `sys.path`. `streamlit run app.py` and `pytest.ini` both take care of this.
 
@@ -77,7 +84,7 @@ Built so far in `chatbot/`:
 4. Agent: retrieve -> Gemini with run_sql tool -> answer, with guardrails (**done**)
 5. Streamlit "Ask the data" page (**done**)
 6. Evaluation set + script + fixes (**done**)
-7. Deploy to Streamlit Community Cloud with secrets, README, screenshots (**next**)
+7. Deploy to Streamlit Community Cloud with secrets, README, screenshots (**deployed, waiting for the owner's live check**)
 
 ## Working rules
 

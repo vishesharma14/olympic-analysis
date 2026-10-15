@@ -12,6 +12,7 @@ build_database() is also used by the chatbot (chatbot/db.py) to build its own co
 
 import csv
 import sqlite3
+from collections.abc import Iterator
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -24,14 +25,20 @@ TABLES = {
 }
 
 
-def read_csv(path: Path) -> tuple[list[str], list[list]]:
-    """Reads a CSV, turning the dataset's missing-value markers ("NA" or empty) into NULL."""
+def read_csv(path: Path) -> tuple[list[str], Iterator[list]]:
+    """Returns a CSV's header and a generator of its rows, turning the dataset's missing-value markers
+    ("NA" or empty) into NULL. Rows are read as they are consumed, so the whole file is never in memory."""
+    lines = _read_lines(path)
+    return next(lines), lines
+
+
+def _read_lines(path: Path) -> Iterator[list]:
     # newline="" lets the csv module handle noc_regions.csv's old Mac-style \r line endings.
     with open(path, newline="", encoding="utf-8") as f:
         reader = csv.reader(f)
-        header = next(reader)
-        rows = [[None if value in ("NA", "") else value for value in row] for row in reader]
-    return header, rows
+        yield next(reader)  # the header, as written
+        for row in reader:
+            yield [None if value in ("NA", "") else value for value in row]
 
 
 def build_database(db_path: Path) -> None:
@@ -42,10 +49,10 @@ def build_database(db_path: Path) -> None:
         for table, path in TABLES.items():
             header, rows = read_csv(path)
             placeholders = ", ".join("?" for _ in header)
-            connection.executemany(
+            cursor = connection.executemany(
                 f"INSERT INTO {table} ({', '.join(header)}) VALUES ({placeholders})", rows
             )
-            print(f"{table}: {len(rows):,} rows loaded")
+            print(f"{table}: {cursor.rowcount:,} rows loaded")  # executemany sums the inserted rows
         connection.commit()
     finally:
         connection.close()

@@ -34,20 +34,22 @@ INTRO = ("Ask about the Summer Olympics 1896–2016. Every number comes from a S
          "data as this dashboard, and you can see the query.")
 NOT_CONFIGURED_MESSAGE = "The assistant isn't configured on this deployment."
 DATABASE_ERROR_MESSAGE = "The assistant's database couldn't be prepared. Please reload the page in a minute."
-FOOTER = ("Powered by Google Gemini (free tier). Answers can be wrong — check the SQL. "
-          "Covers the Summer Games 1896–2016 only.")
+FOOTER = ("Powered by Google Gemini (free tier). Questions are sent to Google Gemini — don't enter "
+          "personal information. Answers can be wrong — check the SQL. Covers the Summer Games 1896–2016 only.")
 PLACEHOLDER = "Ask a question about the Summer Olympics…"
 SPINNER = "Looking it up in the data…"
 DATABASE_SPINNER = "Preparing the database (first visit only, about 20 seconds)"
+# Short enough to fit a button on one line: 2 columns of about 440 px on a 1366 px laptop with the
+# sidebar open, one full-width column on a phone.
 EXAMPLES = (
-    "Which country has won the most gold medals?",
+    "Which country has the most gold medals?",
     "How did India do at London 2012?",
     "Who is the most decorated Olympian?",
     "How are relay medals counted?",
     "Which sport has the tallest medallists?",
     "India ne hockey mein kitne gold jeete?",
 )
-EXAMPLE_COLUMNS = 3  # Streamlit stacks the columns on narrow screens
+EXAMPLE_COLUMNS = 2  # Streamlit stacks the columns on narrow screens
 HISTORY_PAIRS = 2  # earlier (question, answer) pairs sent with each question
 
 VERIFIED_LINE = "✓ Numbers checked against the query results"

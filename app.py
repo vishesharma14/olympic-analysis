@@ -137,7 +137,7 @@ if user_menu == "Medal Tally":
         c3.metric("🥉 Bronze", int(totals["Bronze"]))
         c4.metric("🏆 Total", int(totals.sum()))
         st.markdown("---")
-        st.dataframe(medal_tally, use_container_width=True, hide_index=True)
+        st.dataframe(medal_tally, width="stretch", hide_index=True)
 
 # ----------------------------------------------------------------------------
 # Overall Analysis
@@ -198,7 +198,7 @@ if user_menu == "Overall Analysis":
         template=PLOTLY_TEMPLATE,
         margin=dict(t=20),
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
     st.markdown("---")
     st.subheader("🗺️ Medals by Country")
@@ -224,7 +224,7 @@ if user_menu == "Overall Analysis":
             margin=dict(t=10, b=0),
             geo=dict(bgcolor="rgba(0,0,0,0)", showframe=False),
         )
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
         st.caption("Countries with no matching name in the map's country list are omitted from shading.")
 
     st.markdown("---")
@@ -250,7 +250,7 @@ if user_menu == "Overall Analysis":
             margin=dict(t=10),
             yaxis={"categoryorder": "total ascending"},
         )
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
         st.caption("Press ▶ to watch the top 10 medal-winning nations build their totals across every Olympics.")
 
     col_a, col_b = st.columns(2)
@@ -259,14 +259,14 @@ if user_menu == "Overall Analysis":
         events_over_time = helper.data_over_time(df, "Event")
         fig = px.line(events_over_time, x="Edition", y="Event", markers=True)
         fig.update_layout(template=PLOTLY_TEMPLATE, height=380, margin=dict(t=20))
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
     with col_b:
         st.subheader("Athletes Over the Years")
         athlete_over_time = helper.data_over_time(df, "Name")
         fig = px.line(athlete_over_time, x="Edition", y="Name", markers=True)
         fig.update_layout(template=PLOTLY_TEMPLATE, height=380, margin=dict(t=20))
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
     st.markdown("---")
     st.subheader("Number of Events Across Sports Over the Years")
@@ -289,7 +289,7 @@ if user_menu == "Overall Analysis":
 
     selected_sport = st.selectbox("Explore Athletes by Sport", sport_list)
     top_athletes = helper.most_successful(df, selected_sport)
-    st.dataframe(top_athletes, use_container_width=True, hide_index=True)
+    st.dataframe(top_athletes, width="stretch", hide_index=True)
 
 # ----------------------------------------------------------------------------
 # Country-Wise Analysis
@@ -309,7 +309,7 @@ if user_menu == "Country-Wise Analysis":
     else:
         fig = px.line(country_df, x="Year", y="Medal", markers=True)
         fig.update_layout(template=PLOTLY_TEMPLATE, height=400, margin=dict(t=20))
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
     st.markdown("---")
     st.subheader(f"Medal Performance by Sport")
@@ -328,7 +328,7 @@ if user_menu == "Country-Wise Analysis":
     if top10_df.empty:
         st.info(f"No athlete data available for {selected_country}.")
     else:
-        st.dataframe(top10_df, use_container_width=True, hide_index=True)
+        st.dataframe(top10_df, width="stretch", hide_index=True)
 
 # ----------------------------------------------------------------------------
 # Athlete-Wise Analysis
@@ -347,7 +347,7 @@ if user_menu == "Athlete Wise Analysis":
         barmode="overlay",
     )
     fig.update_layout(template=PLOTLY_TEMPLATE, height=450, margin=dict(t=20))
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
     st.markdown("---")
     st.subheader("Age Distribution of Gold Medalists Across Sports")
@@ -384,7 +384,7 @@ if user_menu == "Athlete Wise Analysis":
         margin=dict(t=20),
         legend=dict(orientation="h", yanchor="bottom", y=1.02),
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
     st.markdown("---")
     st.subheader("Height vs Weight of Olympic Athletes")
@@ -414,7 +414,7 @@ if user_menu == "Athlete Wise Analysis":
         yaxis_title="Number of Athletes",
         legend_title="Gender",
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 # ----------------------------------------------------------------------------
 # Ask the data (imported only here, so the other pages never load the chatbot)

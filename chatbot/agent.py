@@ -54,6 +54,12 @@ TOOL_MAX_CELL_CHARS = 200
 
 log = logging.getLogger(__name__)
 
+# A first line holding only a label with an empty value, followed by the answer: Gemini once began an
+# answer with "Preferences: none" (Step 6, test2), text it generated itself. Prompt rule 7 asks for no
+# preamble; this removes such a line if one still appears.
+_EMPTY_LABEL_LINE = re.compile(r"\A[A-Za-z][A-Za-z ]{0,30}:[ \t]*(?:none|n/a|null)\.?[ \t]*\n+(?=\S)",
+                               re.IGNORECASE)
+
 
 @dataclass
 class SqlRun:
@@ -156,7 +162,7 @@ def _answer(question: str, history, result: AgentResult) -> None:
             contents.append(content)  # as returned, so Gemini 3 thought signatures go back with it
             contents.append(types.Content(role="user", parts=[_run_tool(call, result) for call in calls]))
             continue
-        text = "".join(part.text for part in parts if part.text and not part.thought).strip()
+        text = _EMPTY_LABEL_LINE.sub("", "".join(part.text for part in parts if part.text and not part.thought).strip())
         if text:
             result.text, result.status = text, "ok"
             notes = [chunk.text for chunk, _ in retrieval.hits]
