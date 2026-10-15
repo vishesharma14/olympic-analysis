@@ -1,0 +1,411 @@
+{
+ "run": {
+  "tag": "final-test2",
+  "started": "2026-10-15T16:28:42",
+  "updated": "2026-10-15T16:30:04",
+  "temperature": 1.0,
+  "models": [
+   "gemini-3.5-flash-lite",
+   "gemini-3.1-flash-lite",
+   "gemini-3.8-flash"
+  ],
+  "api_requests": {
+   "gemini-embedding-001": 8,
+   "gemini-3.5-flash-lite": 15
+  }
+ },
+ "records": {
+  "q-countries-with-gold": {
+   "id": "q-countries-with-gold",
+   "question": "How many different countries have won at least one Olympic gold medal?",
+   "category": "new_sql",
+   "split": "test2",
+   "status": "ok",
+   "text": "97 different countries have won at least one Summer Olympic gold medal.",
+   "sql_runs": [
+    {
+     "sql": "SELECT COUNT(DISTINCT country) FROM country_medals WHERE medal = 'Gold' AND country IS NOT NULL",
+     "row_count": 1,
+     "truncated": false,
+     "error": null,
+     "preview": [
+      [
+       97
+      ]
+     ]
+    }
+   ],
+   "sources": [
+    "findings#all-time-medal-table",
+    "findings#top-gold-medal-nation-at-selected-games",
+    "counting_rules#historical-teams-count-as-todays-country",
+    "findings#usa-dominance-in-swimming-and-athletics"
+   ],
+   "retrieval_method": "embeddings",
+   "model": "gemini-3.5-flash-lite",
+   "llm_calls": 2,
+   "elapsed_s": 3.29,
+   "grounding": {
+    "verified": true,
+    "unverified_numbers": []
+   },
+   "checks": {
+    "status": true,
+    "numbers": true,
+    "sql": true,
+    "grounded": true,
+    "language": true,
+    "plain_english": true
+   },
+   "passed": true
+  },
+  "q-most-events-2016": {
+   "id": "q-most-events-2016",
+   "question": "Which sport had the most events at Rio 2016?",
+   "category": "new_sql",
+   "split": "test2",
+   "status": "ok",
+   "text": "At the Rio 2016 Olympic Games, Athletics had the most events with 47.",
+   "sql_runs": [
+    {
+     "sql": "SELECT sport, COUNT(DISTINCT event) AS event_count FROM summer_entries WHERE year = 2016 GROUP BY sport ORDER BY event_count DESC LIMIT 1",
+     "row_count": 1,
+     "truncated": false,
+     "error": null,
+     "preview": [
+      [
+       "Athletics",
+       47
+      ]
+     ]
+    }
+   ],
+   "sources": [
+    "glossary#sport-and-event",
+    "findings#how-big-the-summer-olympics-are",
+    "glossary#games-and-edition",
+    "glossary#refugee-olympic-athletes-rot"
+   ],
+   "retrieval_method": "embeddings",
+   "model": "gemini-3.5-flash-lite",
+   "llm_calls": 2,
+   "elapsed_s": 3.22,
+   "grounding": {
+    "verified": true,
+    "unverified_numbers": []
+   },
+   "checks": {
+    "status": true,
+    "numbers": true,
+    "names": true,
+    "sql": true,
+    "grounded": true,
+    "language": true,
+    "plain_english": true
+   },
+   "passed": true
+  },
+  "q-athletics-most-medals": {
+   "id": "q-athletics-most-medals",
+   "question": "Which athlete has won the most Olympic medals in athletics?",
+   "category": "new_sql",
+   "split": "test2",
+   "status": "ok",
+   "text": "Paavo Nurmi has won the most Olympic medals in athletics, with a total of 12 medals.",
+   "sql_runs": [
+    {
+     "sql": "SELECT athlete, COUNT(*) AS medal_count FROM summer_entries WHERE sport = 'Athletics' AND medal IS NOT NULL GROUP BY athlete_id ORDER BY medal_count DESC LIMIT 1",
+     "row_count": 1,
+     "truncated": false,
+     "error": null,
+     "preview": [
+      [
+       "Paavo Johannes Nurmi",
+       12
+      ]
+     ]
+    }
+   ],
+   "sources": [
+    "findings#most-decorated-olympians",
+    "findings#usa-dominance-in-swimming-and-athletics",
+    "findings#all-time-medal-table",
+    "glossary#athlete-id"
+   ],
+   "retrieval_method": "embeddings",
+   "model": "gemini-3.5-flash-lite",
+   "llm_calls": 2,
+   "elapsed_s": 3.27,
+   "grounding": {
+    "verified": true,
+    "unverified_numbers": []
+   },
+   "checks": {
+    "status": true,
+    "numbers": true,
+    "names": true,
+    "sql": true,
+    "grounded": true,
+    "language": true,
+    "plain_english": true
+   },
+   "passed": true
+  },
+  "q-first-10000-athletes": {
+   "id": "q-first-10000-athletes",
+   "question": "At which Summer Games did more than 10,000 athletes compete for the first time, and how many took part?",
+   "category": "new_sql",
+   "split": "test2",
+   "status": "ok",
+   "text": "Preferences: none\nOver 10,000 athletes competed at the Atlanta 1996 Summer Games for the first time, when 10,339 athletes took part.",
+   "sql_runs": [
+    {
+     "sql": "SELECT year, city, COUNT(DISTINCT athlete_id) AS total_athletes FROM summer_entries GROUP BY year, city ORDER BY year",
+     "row_count": 30,
+     "truncated": false,
+     "error": null,
+     "preview": [
+      [
+       1896,
+       "Athina",
+       176
+      ],
+      [
+       1900,
+       "Paris",
+       1224
+      ],
+      [
+       1904,
+       "St. Louis",
+       650
+      ],
+      [
+       1906,
+       "Athina",
+       841
+      ],
+      [
+       1908,
+       "London",
+       2024
+      ]
+     ]
+    }
+   ],
+   "sources": [
+    "findings#how-big-the-summer-olympics-are",
+    "findings#womens-share-of-athletes",
+    "findings#milestones-in-womens-participation",
+    "dataset#coverage-summer-games-1896-to-2016-only"
+   ],
+   "retrieval_method": "embeddings",
+   "model": "gemini-3.5-flash-lite",
+   "llm_calls": 2,
+   "elapsed_s": 3.94,
+   "grounding": {
+    "verified": true,
+    "unverified_numbers": []
+   },
+   "checks": {
+    "status": true,
+    "numbers": true,
+    "names": true,
+    "sql": true,
+    "grounded": true,
+    "language": true,
+    "plain_english": true
+   },
+   "passed": true
+  },
+  "q-jamaica-athletics": {
+   "id": "q-jamaica-athletics",
+   "question": "How many Olympic medals has Jamaica won in athletics?",
+   "category": "new_sql",
+   "split": "test2",
+   "status": "ok",
+   "text": "Jamaica has won 75 Olympic medals in athletics, consisting of 22 gold, 32 silver, and 21 bronze medals.",
+   "sql_runs": [
+    {
+     "sql": "SELECT COUNT(*) FROM country_medals WHERE country = 'Jamaica' AND sport = 'Athletics'",
+     "row_count": 1,
+     "truncated": false,
+     "error": null,
+     "preview": [
+      [
+       75
+      ]
+     ]
+    },
+    {
+     "sql": "SELECT medal, COUNT(*) FROM country_medals WHERE country = 'Jamaica' AND sport = 'Athletics' GROUP BY medal ORDER BY CASE medal WHEN 'Gold' THEN 1 WHEN 'Silver' THEN 2 ELSE 3 END",
+     "row_count": 3,
+     "truncated": false,
+     "error": null,
+     "preview": [
+      [
+       "Gold",
+       22
+      ],
+      [
+       "Silver",
+       32
+      ],
+      [
+       "Bronze",
+       21
+      ]
+     ]
+    }
+   ],
+   "sources": [
+    "findings#all-time-medal-table",
+    "findings#usa-dominance-in-swimming-and-athletics",
+    "counting_rules#historical-teams-count-as-todays-country",
+    "glossary#medallist"
+   ],
+   "retrieval_method": "embeddings",
+   "model": "gemini-3.5-flash-lite",
+   "llm_calls": 3,
+   "elapsed_s": 4.93,
+   "grounding": {
+    "verified": true,
+    "unverified_numbers": []
+   },
+   "checks": {
+    "status": true,
+    "numbers": true,
+    "sql": true,
+    "grounded": true,
+    "language": true,
+    "plain_english": true
+   },
+   "passed": true
+  },
+  "n-1956-stockholm": {
+   "id": "n-1956-stockholm",
+   "question": "Why were some events of the 1956 Olympics held in Stockholm?",
+   "category": "notes",
+   "split": "test2",
+   "status": "ok",
+   "text": "Australia's quarantine rules kept foreign horses out, so the equestrian events of the 1956 Summer Olympics were held in Stockholm, Sweden, earlier that year.",
+   "sql_runs": [],
+   "sources": [
+    "dataset#the-1956-games-had-two-host-cities",
+    "glossary#sport-and-event",
+    "glossary#games-and-edition",
+    "dataset#city-spellings-in-the-data"
+   ],
+   "retrieval_method": "embeddings",
+   "model": "gemini-3.5-flash-lite",
+   "llm_calls": 1,
+   "elapsed_s": 1.88,
+   "grounding": {
+    "verified": true,
+    "unverified_numbers": []
+   },
+   "checks": {
+    "status": true,
+    "names": true,
+    "sql": true,
+    "grounded": true,
+    "language": true,
+    "plain_english": true
+   },
+   "passed": true
+  },
+  "o-next-games-prediction": {
+   "id": "o-next-games-prediction",
+   "question": "Who will win the most gold medals at the next Summer Olympics?",
+   "category": "out_of_scope",
+   "split": "test2",
+   "status": "ok",
+   "text": "I can only read the Summer Olympics data, so I can't do that. Try asking: Which country has won the most gold medals?",
+   "sql_runs": [],
+   "sources": [
+    "findings#all-time-medal-table",
+    "findings#usa-dominance-in-swimming-and-athletics",
+    "findings#top-gold-medal-nation-at-selected-games",
+    "findings#most-decorated-olympians"
+   ],
+   "retrieval_method": "embeddings",
+   "model": "gemini-3.5-flash-lite",
+   "llm_calls": 1,
+   "elapsed_s": 11.54,
+   "grounding": {
+    "verified": true,
+    "unverified_numbers": []
+   },
+   "checks": {
+    "status": true,
+    "out_of_scope": true,
+    "grounded": true,
+    "language": true,
+    "plain_english": true
+   },
+   "passed": true
+  },
+  "h-football-top-gold": {
+   "id": "h-football-top-gold",
+   "question": "Football mein sabse zyada gold medal kis desh ne jeete hain?",
+   "category": "hinglish",
+   "split": "test2",
+   "status": "ok",
+   "text": "Football mein sabse zyada gold medals USA ne jeete hain, jinhone 4 gold medals haasil kiye hain. Iske baad UK aur Hungary 3-3 gold medals ke sath hain. Russia ke totals mein Soviet Union aur 1992 Unified Team ke medals shamil hain.\n\nKya aapko kisi aur sport ke gold medals ke baare mein jaanna hai?",
+   "sql_runs": [
+    {
+     "sql": "SELECT country, COUNT(*) AS golds FROM country_medals WHERE sport = 'Football' AND medal = 'Gold' AND country IS NOT NULL GROUP BY country ORDER BY golds DESC LIMIT 5",
+     "row_count": 5,
+     "truncated": false,
+     "error": null,
+     "preview": [
+      [
+       "USA",
+       4
+      ],
+      [
+       "UK",
+       3
+      ],
+      [
+       "Hungary",
+       3
+      ],
+      [
+       "Uruguay",
+       2
+      ],
+      [
+       "Russia",
+       2
+      ]
+     ]
+    }
+   ],
+   "sources": [
+    "findings#all-time-medal-table",
+    "findings#top-gold-medal-nation-at-selected-games",
+    "counting_rules#historical-teams-count-as-todays-country",
+    "counting_rules#team-medals-count-once"
+   ],
+   "retrieval_method": "embeddings",
+   "model": "gemini-3.5-flash-lite",
+   "llm_calls": 2,
+   "elapsed_s": 3.87,
+   "grounding": {
+    "verified": true,
+    "unverified_numbers": []
+   },
+   "checks": {
+    "status": true,
+    "numbers": true,
+    "names": true,
+    "sql": true,
+    "grounded": true,
+    "language": true,
+    "plain_english": true
+   },
+   "passed": true
+  }
+ }
+}

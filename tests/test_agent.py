@@ -96,7 +96,8 @@ def test_the_request_has_the_rules_notes_and_settings(gemini):
     config = fake.calls[0].config
     assert config.system_instruction == prompts.SYSTEM_INSTRUCTION
     assert "country_medals" in config.system_instruction and "Reference notes" not in config.system_instruction
-    assert config.temperature == 0 and config.max_output_tokens == agent.MAX_OUTPUT_TOKENS
+    assert f'reply with exactly this text: "{prompts.READ_ONLY_REPLY}"' in config.system_instruction
+    assert config.temperature == agent.TEMPERATURE == 1.0 and config.max_output_tokens == agent.MAX_OUTPUT_TOKENS
     assert config.thinking_config.thinking_level == types.ThinkingLevel.MINIMAL
     assert config.automatic_function_calling.disable is True
     assert config.tools[0].function_declarations[0].name == "run_sql" and not tools_disabled(config)
@@ -104,7 +105,7 @@ def test_the_request_has_the_rules_notes_and_settings(gemini):
     prompt = turn.parts[0].text
     assert turn.role == "user" and prompt.endswith("Question: Why does Russia's total include the Soviet Union?")
     assert prompts.NOTES_START in prompt and prompts.NOTES_END in prompt
-    assert "[counting_rules#countries-follow-noc-regions]" in prompt
+    assert "[counting_rules#historical-teams-count-as-todays-country]" in prompt
 
 
 def test_a_failed_query_is_sent_back_and_the_corrected_one_runs(gemini):
@@ -285,6 +286,19 @@ def test_grounding_uses_the_notes_and_ignores_years_ranks_and_question_numbers()
     answer = "In 2008 and 1896 the 4th-placed team ... 1,385 rows were removed; you asked about 12 sports."
     assert check_grounding(answer, "What about the 12 sports?", [], notes)["verified"] is True
     assert check_grounding("It had 1,386 rows.", "?", [], notes)["unverified_numbers"] == ["1,386"]
+
+
+def test_grounding_ignores_list_markers_and_rank_positions():
+    runs = [query_run(GOLD_LEADER_SQL)]  # USA, 1035: no 2, 3, 4 or 10 in the result
+    answer = ("The gold-medal leaders:\n1. USA: 1,035\n 2) Russia\n- 3. Germany\n**4.** UK\n"
+              "The USA is No. 1, ranked 2 in silvers, #3 in bronzes and in the top 10 of every list.")
+    assert check_grounding(answer, "Who leads?", runs, notes=[]) == {"verified": True, "unverified_numbers": []}
+
+
+def test_numbers_after_a_list_marker_or_rank_word_are_still_checked():
+    runs = [query_run(GOLD_LEADER_SQL)]
+    answer = "1. USA: 999 golds\n2. 1,035 golds\nThe number 5,034 and 7 medals."
+    assert check_grounding(answer, "?", runs, [])["unverified_numbers"] == ["999", "5,034", "7"]
 
 
 def test_failed_queries_do_not_ground_numbers():

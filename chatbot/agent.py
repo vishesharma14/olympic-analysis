@@ -42,6 +42,10 @@ MAX_GENERATE_CALLS = 5  # Gemini calls per question, the final tool-less call in
 MAX_HISTORY_TURNS = 2
 HISTORY_MAX_CHARS = 1_000  # per earlier question or answer
 MAX_OUTPUT_TOKENS = 1_024
+# Google's default for Gemini 3, which may loop or degrade below 1.0. Chosen in the Step 6 evaluation:
+# on the dev split 1.0 passed 22/23 against 20/23 at 0, with similar latency, and at 0 one answer
+# came back as the bare token "_not_in_database".
+TEMPERATURE = 1.0
 
 SQL_MAX_ROWS = 200  # rows kept per query for the result and the UI
 TOOL_MAX_ROWS = 50  # rows sent back to the model
@@ -90,12 +94,12 @@ RUN_SQL = types.FunctionDeclaration(
 )
 
 
-def _config(mode: types.FunctionCallingConfigMode) -> types.GenerateContentConfig:
+def _config(mode: types.FunctionCallingConfigMode, temperature: float = TEMPERATURE) -> types.GenerateContentConfig:
     return types.GenerateContentConfig(
         system_instruction=prompts.SYSTEM_INSTRUCTION,
-        temperature=0.0,  # Google advises 1.0 for Gemini 3 (lower may loop); 0 is repeatable, no looping seen; revisit in Step 6
+        temperature=temperature,
         max_output_tokens=MAX_OUTPUT_TOKENS,
-        # The lowest thinking level; both chat models accept it (gemini-3.7-flash and 3.8-flash do not).
+        # The lowest thinking level; llm.generate raises it for a model that rejects it (llm.THINKING_LEVELS).
         thinking_config=types.ThinkingConfig(thinking_level=types.ThinkingLevel.MINIMAL),
         tools=[types.Tool(function_declarations=[RUN_SQL])],
         tool_config=types.ToolConfig(function_calling_config=types.FunctionCallingConfig(mode=mode)),
@@ -245,6 +249,13 @@ _NUMBER = re.compile(r"""
     (?P<ordinal>(?:st|nd|rd|th)\b)?     # 1st, 4th: a rank, not a value
 """, re.VERBOSE | re.IGNORECASE)
 FIRST_YEAR, LAST_YEAR = 1896, 2016
+# Positions, not values: ordered-list markers ("1." or "2)" starting a line, also "- 1." or "**1.**")
+# and rank positions ("No. 1", "#2", "rank 3", "top 10"). A number with more digits after a comma or
+# point ("number 5,034") is still checked.
+_POSITION = re.compile(r"""
+    ^[ \t]*[-*•]*[ \t]*\(?\d{1,3}[.)]\**(?=\s)
+    | (?:\#|\bno\.[ \t]?|\b(?:rank|ranks|ranked|position|place|placed|number|top)[ \t]+)\d{1,3}(?![\d,.]?\d)
+""", re.VERBOSE | re.MULTILINE | re.IGNORECASE)
 
 
 class _Number(NamedTuple):
@@ -272,12 +283,12 @@ def check_grounding(answer_text: str, question: str, sql_runs: Sequence[SqlRun],
 
     A number matches a value when the value, rounded to the number's decimals, is equal to it (192.1
     matches 192.07); a percentage also matches a fraction (48.6% matches 0.486). Years from 1896 to
-    2016 and numbers that appear in the question are not checked.
+    2016, numbers that appear in the question, list markers and rank positions are not checked.
     """
     known = _known_values(sql_runs, notes)
     asked = {number.value for number in _numbers(question)}
     unverified = []
-    for number in _numbers(answer_text):
+    for number in _numbers(_POSITION.sub(" ", answer_text)):
         if number.is_year or number.value in asked or _matches(number, known):
             continue
         if number.token not in unverified:

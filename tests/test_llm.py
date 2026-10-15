@@ -8,14 +8,21 @@ from types import SimpleNamespace
 
 import numpy as np
 import pytest
-from google.genai import errors
+from google.genai import errors, types
 
 from chatbot import llm
 
 pytestmark = pytest.mark.usefixtures("offline_gemini")
 
-PRIMARY, FALLBACK = llm.DEFAULT_CHAT_MODELS
+DEFAULT_CHAIN = llm.DEFAULT_CHAT_MODELS
+PRIMARY, FALLBACK, LAST = DEFAULT_CHAIN
 FAKE_KEY = "fake-test-key-not-a-real-secret-0000"
+
+
+@pytest.fixture(autouse=True)
+def two_models(monkeypatch):
+    """The fallback tests use the first two models; the third one is tested on its own below."""
+    monkeypatch.setattr(llm, "DEFAULT_CHAT_MODELS", (PRIMARY, FALLBACK))
 
 
 def api_error(code: int) -> errors.APIError:
@@ -181,6 +188,29 @@ def test_skipped_models_are_shared_safely_between_threads(monkeypatch, clock):
     calls.clear()
     llm.generate("later")
     assert [model for model, _ in calls] == [FALLBACK]
+
+
+def test_the_last_model_gets_its_own_thinking_level(monkeypatch):
+    monkeypatch.setattr(llm, "DEFAULT_CHAT_MODELS", DEFAULT_CHAIN)
+    assert LAST == "gemini-3.8-flash" and llm.THINKING_LEVELS == {LAST: types.ThinkingLevel.LOW}
+    calls = fake_client(monkeypatch, generate=failing_for((PRIMARY, 429), (FALLBACK, 503)))
+    config = types.GenerateContentConfig(
+        temperature=0, thinking_config=types.ThinkingConfig(thinking_level=types.ThinkingLevel.MINIMAL))
+
+    assert llm.generate("hi", config) == f"answer from {LAST}"
+    assert [model for model, _ in calls] == [PRIMARY, PRIMARY, FALLBACK, FALLBACK, LAST]
+    levels = [sent.thinking_config.thinking_level for _, sent in calls]
+    assert levels == [types.ThinkingLevel.MINIMAL] * 4 + [types.ThinkingLevel.LOW]
+    assert calls[-1][1].temperature == 0  # the rest of the config is unchanged
+    assert config.thinking_config.thinking_level == types.ThinkingLevel.MINIMAL  # the caller's config too
+
+
+def test_a_config_without_thinking_is_sent_as_it_is(monkeypatch):
+    calls = fake_client(monkeypatch, generate=failing_for())
+    llm.generate("hi", None, models=[LAST])
+    config = types.GenerateContentConfig(temperature=0)
+    llm.generate("hi", config, models=[LAST])
+    assert [sent for _, sent in calls] == [None, config]
 
 
 def test_chat_and_embedding_models_can_be_overridden(monkeypatch):

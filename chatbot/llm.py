@@ -7,6 +7,7 @@ The only module that talks to Gemini, through the official Google Gen AI SDK (go
     embed_documents(texts) L2-normalised float32 vectors for knowledge chunks
     embed_query(text)      L2-normalised float32 vector for a question
     generate(contents)     a chat completion, falling back to the next model on quota or overload errors
+                           (each model gets its own thinking level when THINKING_LEVELS has one)
 
 A chat model that is out of quota or overloaded (429 or 503 after its retry) is skipped by this
 process for COOLDOWN_S seconds, and a model that does not exist (404) is skipped for good, so later
@@ -39,12 +40,16 @@ SECRETS_PATH = ROOT / ".streamlit" / "secrets.toml"
 
 # Free-tier models, chosen with python -m chatbot.list_models. Override with GEMINI_CHAT_MODELS
 # (comma-separated, tried in order) and GEMINI_EMBED_MODEL. Checked in October 2026 and left out:
-# gemini-2.5-flash-lite (404, no longer available to new keys) and gemini-3.7-flash / gemini-3.8-flash
-# (400: they reject the agent's MINIMAL thinking level).
+# gemini-2.5-flash-lite (404, no longer available to new keys) and gemini-3.7-flash (400: rejects the
+# agent's MINIMAL thinking level, not probed with LOW).
 DEFAULT_CHAT_MODELS = (
     "gemini-3.5-flash-lite",  # Gemini 3.5 Flash Lite: 15 requests/min, 250K tokens/min, 500 requests/day
     "gemini-3.1-flash-lite",  # Gemini 3.1 Flash Lite: same limits, used when the first is out of quota
+    "gemini-3.8-flash",       # Gemini 3.8 Flash: the last resort (3.1 returned 503 on every probe so far)
 )
+# Thinking levels for models that reject the one in the caller's config. gemini-3.8-flash returns 400
+# for MINIMAL, the agent's level; LOW is its lowest accepted level (probed in October 2026).
+THINKING_LEVELS = {"gemini-3.8-flash": types.ThinkingLevel.LOW}
 DEFAULT_EMBED_MODEL = "gemini-embedding-001"  # Gemini Embedding 1: 100 requests/min, 30K tokens/min, 1K requests/day
 EMBED_DIMENSIONS = 768
 
@@ -135,7 +140,8 @@ def generate(contents, config: types.GenerateContentConfig | None = None,
         for attempt in (1, 2):
             try:
                 usage[model] += 1
-                return _client().models.generate_content(model=model, contents=contents, config=config)
+                return _client().models.generate_content(model=model, contents=contents,
+                                                         config=_config_for(model, config))
             except (errors.APIError, httpx.HTTPError) as error:
                 code = _failure_code(error)
             log.warning("Gemini model %s failed with %s (attempt %d)", model, code, attempt)
@@ -150,6 +156,14 @@ def generate(contents, config: types.GenerateContentConfig | None = None,
                 _skip(model, COOLDOWN_S)
     raise QuotaExceeded("The assistant's Gemini models are busy or out of quota right now. "
                         "Please try again in a few minutes.")
+
+
+def _config_for(model: str, config: types.GenerateContentConfig | None) -> types.GenerateContentConfig | None:
+    """config with the model's own thinking level from THINKING_LEVELS; the caller's config is not changed."""
+    level = THINKING_LEVELS.get(model)
+    if config is None or config.thinking_config is None or level is None:
+        return config
+    return config.model_copy(update={"thinking_config": types.ThinkingConfig(thinking_level=level)})
 
 
 def clear_skipped_models() -> None:

@@ -15,7 +15,7 @@ from chatbot.retrieval import keyword_search, retrieve
 pytestmark = pytest.mark.live
 
 QUESTIONS = [
-    ("Why does Russia include the Soviet Union?", {"counting_rules#countries-follow-noc-regions"}),
+    ("Why does Russia include the Soviet Union?", {"counting_rules#historical-teams-count-as-todays-country"}),
     ("Are the Winter Olympics included?", {"dataset#coverage-summer-games-1896-to-2016-only"}),
     ("How are relay medals counted?", {"counting_rules#team-medals-count-once"}),
     ("What is an NOC?", {"glossary#noc-national-olympic-committee"}),

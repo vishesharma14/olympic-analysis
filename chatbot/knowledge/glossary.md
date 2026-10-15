@@ -2,15 +2,15 @@
 
 ## NOC (National Olympic Committee)
 
-An NOC, or National Olympic Committee, is the organisation that enters a team at the Olympic Games. In the data, each NOC has a three-letter code, such as USA for the United States, GBR for Great Britain, IND for India and URS for the Soviet Union. The Summer data uses 230 different NOC codes, including codes for teams that no longer exist. The noc_regions file maps each NOC code to a present-day country.
+An NOC, or National Olympic Committee, is the organisation that enters a team at the Olympic Games. In the data, each NOC has a three-letter code, such as USA for the United States, GBR for Great Britain, IND for India and URS for the Soviet Union. The Summer data uses 230 different NOC codes, including codes for teams that no longer exist. The dataset's list of NOC codes maps each code to a present-day country.
 
 ## Region and country
 
-A country, called region in the noc_regions file, is the present-day country that an NOC code maps to. Country is how this project groups medals and athletes by nation, and several historical NOC codes can share one country: the Soviet Union (URS) and Russia (RUS) both count as Russia. The Summer data has 205 countries. A few teams have no country, such as Singapore, whose code SGP is missing from noc_regions.
+A country, called a region in the source data, is the present-day country that an NOC code maps to. Country is how this project groups medals and athletes by nation, and several historical NOC codes can share one country: the Soviet Union (URS) and Russia (RUS) both count as Russia. The Summer data has 205 countries. A few teams have no country, such as Singapore, whose code SGP is missing from the dataset's list of NOC codes.
 
 ## Games and edition
 
-A Games, or edition, is one Summer Olympics, identified by its year and host city, for example Rio 2016. The data has 29 Summer Games years from 1896 to 2016: 28 official editions plus the 1906 Intercalated Games, which the IOC does not count. No Games were held in 1916, 1940 or 1944 because of the World Wars. In the raw data, the Games column combines the year and the season, such as "2016 Summer".
+A Games, or edition, is one Summer Olympics, identified by its year and host city, for example Rio 2016. The data has 29 Summer Games years from 1896 to 2016: 28 official editions plus the 1906 Intercalated Games, which the IOC does not count. No Games were held in 1916, 1940 or 1944 because of the World Wars. In the source data, each Games is labelled with its year and season, such as "2016 Summer".
 
 ## Sport and event
 
@@ -18,11 +18,11 @@ A sport is a whole discipline, such as Athletics, Swimming or Hockey. An event i
 
 ## Medallist
 
-A medallist is an athlete who won at least one Gold, Silver or Bronze medal. Of the 116,776 athletes in the Summer data, 24,584 are medallists. Every member of a medal-winning team or relay counts as a medallist and is credited with the medal individually, even though a country's medal table counts that team medal only once. In the data, a medal value of NULL means the athlete did not win a medal in that event.
+A medallist is an athlete who won at least one Gold, Silver or Bronze medal. Of the 116,776 athletes in the Summer data, 24,584 are medallists. Every member of a medal-winning team or relay counts as a medallist and is credited with the medal individually, even though a country's medal table counts that team medal only once. In the data, an empty medal means the athlete did not win a medal in that event.
 
 ## Team medal
 
-A team medal is a medal won by a team rather than by one athlete, for example in a relay, in a team sport such as hockey or basketball, or by a rowing crew. The data lists every team member as a separate row with the medal. In country medal tables, a team medal counts once for the country, so a relay gold is one gold, not one per runner. In individual athlete counts, each team member is still credited with the medal.
+A team medal is a medal won by a team rather than by one athlete, for example in a relay, in a team sport such as hockey or basketball, or by a rowing crew. The data records the medal separately for every team member. In country medal tables, a team medal counts once for the country, so a relay gold is one gold, not one per runner. In individual athlete counts, each team member is still credited with the medal.
 
 ## Intercalated Games
 
@@ -38,8 +38,8 @@ Independent Olympic Athletes competed under the Olympic flag instead of for a co
 
 ## Refugee Olympic Athletes (ROT)
 
-The Refugee Olympic Athletes, NOC code ROT, were a team of refugees who competed under the Olympic flag at Rio 2016. In this data the team has 10 athletes in 3 sports: athletics, judo and swimming. The ROT code has no country in noc_regions, so the team's rows have no country; filter on noc = 'ROT' to find them. The Refugee Olympic Athletes did not win a medal.
+The Refugee Olympic Athletes, NOC code ROT, were a team of refugees who competed under the Olympic flag at Rio 2016. In this data the team has 10 athletes in 3 sports: athletics, judo and swimming. The ROT code has no country in the data, so the team is missing from country totals and can only be found by its NOC code. The Refugee Olympic Athletes did not win a medal.
 
-## athlete_id
+## Athlete ID
 
-athlete_id is the unique number given to each athlete in the data, and it is the right way to count or group athletes. Names are not unique: 564 names in the Summer data belong to more than one athlete_id, so grouping by name would merge different people. The Summer data has 116,776 different athlete_ids. An athlete keeps the same athlete_id across all their events and Games, which is how career totals such as Michael Phelps's 28 medals are computed.
+The athlete ID is the unique number given to each athlete in the data, and it is the right way to count or group athletes. Names are not unique: 564 names in the Summer data belong to more than one athlete, so grouping by name would merge different people. The Summer data has 116,776 different athletes. An athlete keeps the same ID across all their events and Games, which is how career totals such as Michael Phelps's 28 medals are computed.
